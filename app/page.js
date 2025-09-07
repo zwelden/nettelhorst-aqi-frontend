@@ -30,7 +30,7 @@ export default function Home() {
   );
 
   const { data: data7Days, error: error7Days, isLoading: isLoading7Days } = useSWR(
-    `${process.env.NEXT_PUBLIC_NH_AQI_API_URL}/api/v1/history/80146/days?days=7`,
+    `${process.env.NEXT_PUBLIC_NH_AQI_API_URL}/api/v1/history/80146/week`,
     fetcher,
     {
       refreshInterval: 300000,
@@ -41,18 +41,18 @@ export default function Home() {
   const chartData = data?.map(item => ({
     time: parseISO(item.measure_time).getTime(),
     fullTime: item.measure_time,
-    value: selectedMetric === 'atmp' 
+    value: parseFloat((selectedMetric === 'atmp' 
       ? (item.measure_data[selectedMetric] * 9/5) + 32 
-      : item.measure_data[selectedMetric],
+      : item.measure_data[selectedMetric]).toFixed(2)),
     ...item.measure_data
   })) || [];
 
   const chartData7Days = data7Days?.map(item => ({
     time: parseISO(item.measure_time).getTime(),
     fullTime: item.measure_time,
-    value: selectedMetric === 'atmp' 
+    value: parseFloat((selectedMetric === 'atmp' 
       ? (item.measure_data[selectedMetric] * 9/5) + 32 
-      : item.measure_data[selectedMetric],
+      : item.measure_data[selectedMetric]).toFixed(2)),
     ...item.measure_data
   })) || [];
 
@@ -136,14 +136,14 @@ export default function Home() {
                         }
                         return label;
                       }}
-                      formatter={(value) => [value, metrics[selectedMetric].display]}
+                      formatter={(value) => [parseFloat(value).toFixed(2), metrics[selectedMetric].display]}
                     />
                     <Line 
                       type="monotone" 
                       dataKey="value" 
                       stroke="#3b82f6" 
                       strokeWidth={2}
-                      dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                      dot={{ fill: '#3b82f6', strokeWidth: 2, r: 2 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -182,14 +182,14 @@ export default function Home() {
                         }
                         return label;
                       }}
-                      formatter={(value) => [value, metrics[selectedMetric].display]}
+                      formatter={(value) => [parseFloat(value).toFixed(2), metrics[selectedMetric].display]}
                     />
                     <Line 
                       type="monotone" 
                       dataKey="value" 
                       stroke="#3b82f6" 
                       strokeWidth={2}
-                      dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                      dot={{ fill: '#3b82f6', strokeWidth: 2, r: 2 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
