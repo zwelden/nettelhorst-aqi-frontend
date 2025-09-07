@@ -1,103 +1,145 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import useSWR from 'swr';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { format, parseISO } from 'date-fns';
+import axios from 'axios';
+
+const fetcher = (url) => axios.get(url).then(res => res.data);
+
+const metrics = {
+  rco2_corrected: { display: "CO2 reading", description: "CO2 in parts per million" },
+  atmp: { display: "Ambient Temp. F", description: "The ambient temperature in Fahrenheit" },
+  tvoc: { display: "TVOC (raw)", description: "Total Volatile Organic Compounds in ppm (raw reading)" },
+  tvocIndex: { display: "TVOC Index", description: "Total Volatile Organic Compounds Index" },
+  rhum_corrected: { display: "Relative Humidity", description: "Relative Humidity" },
+  pm02_corrected: { display: "PM2.5", description: "Particulate Matter 2.5 ug / m3" }
+};
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [selectedMetric, setSelectedMetric] = useState('rco2_corrected');
+  
+  const { data, error, isLoading } = useSWR(
+    `${process.env.NEXT_PUBLIC_NH_AQI_API_URL}/api/v1/history/80146/hours?hours=24`,
+    fetcher,
+    {
+      refreshInterval: 60000,
+      revalidateOnFocus: false
+    }
+  );
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const chartData = data?.map(item => ({
+    time: parseISO(item.measure_time).getTime(),
+    fullTime: item.measure_time,
+    value: selectedMetric === 'atmp' 
+      ? (item.measure_data[selectedMetric] * 9/5) + 32 
+      : item.measure_data[selectedMetric],
+    ...item.measure_data
+  })) || [];
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-red-500 text-center">
+          <h2 className="text-xl font-bold mb-2">Error loading data</h2>
+          <p>{error.message}</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen p-4 md:p-8 bg-gray-50 dark:bg-gray-900">
+      <div className="max-w-6xl mx-auto">
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Nettelhorst AQI Monitor
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Nettelhorst, Chicago IL
+          </p>
+        </header>
+
+        <div className="mb-6">
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              {metrics[selectedMetric].display}
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {metrics[selectedMetric].description}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mb-6">
+            {Object.entries(metrics).map(([key, metric]) => (
+              <button
+                key={key}
+                onClick={() => setSelectedMetric(key)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedMetric === key
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                {metric.display}
+              </button>
+            ))}
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 pl-0 shadow-lg">
+            <div className="text-xl font-bold mb-4 text-center">24 Hour History</div>
+            {isLoading ? (
+              <div className="h-96 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              </div>
+            ) : (
+              <div className="h-96">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="time"
+                      type="number"
+                      domain={['dataMin', 'dataMax']}
+                      scale="time"
+                      interval="preserveStartEnd"
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(timestamp) => format(new Date(timestamp), 'HH:mm')}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      domain={selectedMetric === 'rco2_corrected' ? [375, 'dataMax'] : ['dataMin', 'dataMax']}
+                    />
+                    <Tooltip 
+                      labelFormatter={(label, payload) => {
+                        if (payload && payload.length > 0) {
+                          return format(parseISO(payload[0].payload.fullTime), 'MMM dd, HH:mm');
+                        }
+                        return label;
+                      }}
+                      formatter={(value) => [value, metrics[selectedMetric].display]}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="value" 
+                      stroke="#3b82f6" 
+                      strokeWidth={2}
+                      dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+
+          {data && data.length > 0 && (
+            <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+              Last updated: {format(parseISO(data[data.length - 1].measure_time), 'MMM dd, yyyy HH:mm')}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

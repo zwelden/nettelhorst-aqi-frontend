@@ -1,4 +1,20 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Nettelhorst AQI Frontend
+
+This is a [Next.js](https://nextjs.org) project that displays real-time air quality monitoring data from a sensor located near Nettelhorst Elementary School in Chicago.
+
+## Features
+
+- **Real-time Data Visualization**: Interactive charts displaying 24-hour history of air quality metrics
+- **Multiple Sensor Readings**: Switch between different environmental measurements:
+  - CO2 levels (parts per million)
+  - Ambient temperature (Fahrenheit)
+  - Total Volatile Organic Compounds (TVOC) - raw and index values
+  - Nitrogen Oxides (NOx) Index
+  - Relative Humidity
+  - PM2.5 Particulate Matter
+- **Automatic Updates**: Data refreshes every minute
+- **Responsive Design**: Works on desktop and mobile devices
+- **Dark Mode Support**: Automatic light/dark theme switching 
 
 ## Getting Started
 
@@ -16,9 +32,31 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### Environment Configuration
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create a `.env` file in the root directory with:
+
+```
+NEXT_PUBLIC_NH_AQI_API_URL=http://localhost:8000
+```
+
+This should point to your AQI API backend server.
+
+## API Integration
+
+The app fetches data from the following endpoint:
+- **Endpoint**: `${NEXT_PUBLIC_NH_AQI_API_URL}/api/v1/history/80146/hours?hours=24`
+- **Method**: GET
+- **Data Format**: Returns an array of measurement objects with timestamps and sensor readings
+
+## Technical Details
+
+- **Framework**: Next.js 15 with React 19
+- **Styling**: Tailwind CSS
+- **Charts**: Recharts for data visualization
+- **Data Fetching**: SWR with automatic revalidation
+- **HTTP Client**: Axios
+- **Date Handling**: date-fns for timestamp formatting
 
 ## Learn More
 
